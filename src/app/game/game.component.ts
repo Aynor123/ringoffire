@@ -4,11 +4,26 @@ import { Game } from '../../models/game';
 import { PlayerComponent } from "../player/player.component";
 import {MatButtonModule} from '@angular/material/button';
 import {MatIconModule} from '@angular/material/icon';
+import {FormsModule} from '@angular/forms';
+import {MatFormFieldModule} from '@angular/material/form-field';
+import {MatInputModule} from '@angular/material/input';
+import {
+  MAT_DIALOG_DATA,
+  MatDialog,
+  MatDialogActions,
+  MatDialogClose,
+  MatDialogContent,
+  MatDialogModule,
+  MatDialogRef,
+  MatDialogTitle,
+} from '@angular/material/dialog';
+import { DialogAddPlayerComponent } from '../dialog-add-player/dialog-add-player.component';
+
 
 @Component({
   selector: 'app-game',
   standalone: true,
-  imports: [CommonModule, PlayerComponent, MatButtonModule, MatIconModule],
+  imports: [CommonModule, PlayerComponent, MatButtonModule, MatIconModule, MatFormFieldModule, MatInputModule, FormsModule, MatDialogModule],
   templateUrl: './game.component.html',
   styleUrl: './game.component.scss'
 })
@@ -17,6 +32,8 @@ export class GameComponent {
   pickCardAnimation = false;
   game!: Game;
   currentCard: string | undefined = '';
+
+  constructor(public dialog: MatDialog) {}
 
   ngOnInit(): void {
     this.newGame();
@@ -37,5 +54,16 @@ export class GameComponent {
         this.game.playedCards.push(this.currentCard ?? 'defaultCard');
       }, 1000)
     }
+  }
+
+  openDialog(): void {
+    const dialogRef = this.dialog.open(DialogAddPlayerComponent);
+
+    dialogRef.afterClosed().subscribe(name => {
+      console.log('The dialog was closed', name);
+      this.game.players.push(name)
+      if (name !== undefined) {
+      }
+    });
   }
 }
