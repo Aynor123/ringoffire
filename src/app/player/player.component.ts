@@ -10,4 +10,5 @@ import { Component, Input } from '@angular/core';
 export class PlayerComponent {
 
   @Input() name: string | null = 'default';
+  @Input() playerActive: boolean = false;
 }
