@@ -19,14 +19,15 @@ import {
 } from '@angular/material/dialog';
 import { DialogAddPlayerComponent } from '../dialog-add-player/dialog-add-player.component';
 import { GameInfoComponent } from "../game-info/game-info.component";
-import { Firestore, collection, collectionData, doc, onSnapshot, addDoc } from '@angular/fire/firestore';
+import { Firestore, collection, collectionData, doc, onSnapshot, addDoc, getDoc } from '@angular/fire/firestore';
 import { Observable } from 'rxjs';
+import { ActivatedRoute, Router } from '@angular/router';
 
 
 @Component({
   selector: 'app-game',
   standalone: true,
-  imports: [CommonModule, PlayerComponent, MatButtonModule, MatIconModule, MatFormFieldModule, MatInputModule, FormsModule, MatDialogModule, GameInfoComponent, GameInfoComponent, AsyncPipe],
+  imports: [CommonModule, PlayerComponent, MatButtonModule, MatIconModule, MatFormFieldModule, MatInputModule, FormsModule, MatDialogModule, GameInfoComponent, GameInfoComponent, AsyncPipe ],
   templateUrl: './game.component.html',
   styleUrl: './game.component.scss'
 })
@@ -36,6 +37,7 @@ export class GameComponent {
   game!: Game;
   currentCard: string | undefined = '';
   firestore: Firestore = inject(Firestore);
+  documentId: string = '';
 
   // items$: Observable<any[]>;
 
@@ -43,35 +45,23 @@ export class GameComponent {
   unsubSingle: any;
 
 
-  constructor(public dialog: MatDialog) {
+  constructor(
+    private route: ActivatedRoute,
+    private router: Router,
+    public dialog: MatDialog) {
     this.unsubList = onSnapshot(collection(this.firestore, 'games'), (list) => {
       list.forEach(element => {
         console.log(this.setDatabaseObjectStructure(element.data(), element.id)); //entweder "element.id" oder "element.data()" ins log eintragen --> console.log(element.data()); //Die Funktion "setDatabaseObjectStructure" verwendet als ersten Parameter das element.data als object
       })
     });
-
-    // this.unsubSingle = onSnapshot(collection(this.firestore, 'games'), (list) => {
-    //   list.forEach(element => {
-    //     console.log(element);
-    //   })
-    // });
-    // this.unsubSingle();
-
-    // let gamesCollection = collection(this.firestore, 'games');
-    // this.items$ = collectionData(gamesCollection);
   }
 
   ngOnDestroy() {
     this.unsubList(); // Warum muss ich destroyen? element id wird auch so ausgelesen.
   }
 
-  async createDataOnFirestore() { //addDoc importieren!
-    await addDoc(collection(this.firestore, "games"), {
-      players: this.game.players, //Wenn kene ID übergeben wird, dann wird "" ausgewählt.
-      stack: this.game.stack, // Wenn kein obj.title übergeben wird, dann wird "note" verwendet.
-      playedCards: this.game.playedCards,
-      currentPlayer: this.game.currentPlayer// Geht auch mit boolean.
-    });
+  ngOnInit(): void {
+    this.newGame();
   }
 
   setDatabaseObjectStructure(obj: any, id: string) { // Beispiel, um ein strukturiertes Object zu erstellen.
@@ -83,15 +73,8 @@ export class GameComponent {
     }
   }
 
-  ngOnInit(): void {
-    this.newGame();
-    this.createDataOnFirestore();
-    // console.log('Game update: ', this.items$);
-  }
-
   newGame() {
     this.game = new Game();
-    
   }
 
   takeCard() {
