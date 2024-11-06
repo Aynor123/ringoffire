@@ -19,7 +19,7 @@ import {
 } from '@angular/material/dialog';
 import { DialogAddPlayerComponent } from '../dialog-add-player/dialog-add-player.component';
 import { GameInfoComponent } from "../game-info/game-info.component";
-import { Firestore, collection, collectionData, doc, onSnapshot, addDoc, getDoc } from '@angular/fire/firestore';
+import { Firestore, collection, collectionData, doc, onSnapshot, addDoc, getDoc, updateDoc  } from '@angular/fire/firestore';
 import { Observable } from 'rxjs';
 import { ActivatedRoute, Router } from '@angular/router';
 
@@ -27,7 +27,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 @Component({
   selector: 'app-game',
   standalone: true,
-  imports: [CommonModule, PlayerComponent, MatButtonModule, MatIconModule, MatFormFieldModule, MatInputModule, FormsModule, MatDialogModule, GameInfoComponent, GameInfoComponent, AsyncPipe ],
+  imports: [CommonModule, PlayerComponent, MatButtonModule, MatIconModule, MatFormFieldModule, MatInputModule, FormsModule, MatDialogModule, GameInfoComponent, GameInfoComponent, AsyncPipe],
   templateUrl: './game.component.html',
   styleUrl: './game.component.scss'
 })
@@ -36,10 +36,9 @@ export class GameComponent {
   pickCardAnimation = false;
   game!: Game;
   currentCard: string | undefined = '';
-  firestore: Firestore = inject(Firestore);
   documentId: string = '';
+  docId:any;
 
-  // items$: Observable<any[]>;
 
   unsubList: any;
   unsubSingle: any;
@@ -47,21 +46,60 @@ export class GameComponent {
 
   constructor(
     private route: ActivatedRoute,
-    private router: Router,
+    private firestore: Firestore,
     public dialog: MatDialog) {
-    this.unsubList = onSnapshot(collection(this.firestore, 'games'), (list) => {
-      list.forEach(element => {
-        console.log(this.setDatabaseObjectStructure(element.data(), element.id)); //entweder "element.id" oder "element.data()" ins log eintragen --> console.log(element.data()); //Die Funktion "setDatabaseObjectStructure" verwendet als ersten Parameter das element.data als object
-      })
+
+    // Get the document ID from the route parameters
+    this.route.paramMap.subscribe(params => {
+      this.docId = params.get('id');
+      if (this.docId) {
+        this.listenToGameDocument(this.docId);
+      }
     });
+
+    this.listenToGameDocumentVersionTwo();
+
+    // this.unsubList = onSnapshot(collection(this.firestore, 'games'), (list) => {
+    //   list.forEach(element => {
+    //     console.log(this.setDatabaseObjectStructure(element.data(), element.id)); //entweder "element.id" oder "element.data()" ins log eintragen --> console.log(element.data()); //Die Funktion "setDatabaseObjectStructure" verwendet als ersten Parameter das element.data als object
+    //   })
+    // });
   }
 
-  ngOnDestroy() {
-    this.unsubList(); // Warum muss ich destroyen? element id wird auch so ausgelesen.
-  }
+  // ngOnDestroy() {
+  //   this.unsubList(); // Warum muss ich destroyen? element id wird auch so ausgelesen.
+  // }
 
   ngOnInit(): void {
     this.newGame();
+  }
+
+  listenToGameDocument(docId: string) {
+    this.unsubList = onSnapshot(doc(this.firestore, 'games', docId), (docSnapshot) => {
+      if (docSnapshot.exists()) {
+        console.log(docSnapshot.data());
+      } else {
+        console.log('Document does not exist');
+      }
+    });
+  }
+
+  listenToGameDocumentVersionTwo() {
+    this.unsubList = onSnapshot(doc(this.firestore, 'games', this.docId), (docSnapshot) => {
+      if (docSnapshot.exists()) {
+        const data = docSnapshot.data();
+  
+        // Update local game data with the data from Firestore
+        this.game.players = data['players'] || [];
+        this.game.stack = data['stack'] || [];
+        this.game.playedCards = data['playedCards'] || [];
+        this.game.currentPlayer = data['currentPlayer'] || null;
+  
+        console.log('Game data updated:', this.game);
+      } else {
+        console.log('Document does not exist');
+      }
+    });
   }
 
   setDatabaseObjectStructure(obj: any, id: string) { // Beispiel, um ein strukturiertes Object zu erstellen.
@@ -98,9 +136,25 @@ export class GameComponent {
     dialogRef.afterClosed().subscribe(name => {
       if (name.length > 0) {
         this.game.players.push(name)
+        this.updateDatabase();
         if (name !== undefined) {
         }
       }
     });
+  }
+
+  async updateDatabase() {
+    let docRef = doc(this.firestore, 'games', this.docId); // Use the correct document reference
+  
+    try {
+      await updateDoc(docRef, {
+        players: this.game.players,
+        stack: this.game.stack,
+        playedCards: this.game.playedCards,
+        currentPlayer: this.game.currentPlayer,
+      });
+    } catch (error) {
+      console.error('Error updating document: ', error);
+    }
   }
 }
