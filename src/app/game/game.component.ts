@@ -19,7 +19,7 @@ import {
 } from '@angular/material/dialog';
 import { DialogAddPlayerComponent } from '../dialog-add-player/dialog-add-player.component';
 import { GameInfoComponent } from "../game-info/game-info.component";
-import { Firestore, collection, collectionData, doc, onSnapshot, addDoc, getDoc, updateDoc  } from '@angular/fire/firestore';
+import { Firestore, collection, collectionData, doc, onSnapshot, addDoc, getDoc, updateDoc } from '@angular/fire/firestore';
 import { Observable } from 'rxjs';
 import { ActivatedRoute, Router } from '@angular/router';
 
@@ -37,7 +37,7 @@ export class GameComponent {
   game!: Game;
   currentCard: string | undefined = '';
   documentId: string = '';
-  docId:any;
+  docId: any;
 
 
   unsubList: any;
@@ -52,9 +52,9 @@ export class GameComponent {
     // Get the document ID from the route parameters
     this.route.paramMap.subscribe(params => {
       this.docId = params.get('id');
-      if (this.docId) {
-        this.listenToGameDocument(this.docId);
-      }
+      // if (this.docId) {
+      //   this.listenToGameDocument(this.docId);
+      // }
     });
 
     this.listenToGameDocumentVersionTwo();
@@ -74,27 +74,27 @@ export class GameComponent {
     this.newGame();
   }
 
-  listenToGameDocument(docId: string) {
-    this.unsubList = onSnapshot(doc(this.firestore, 'games', docId), (docSnapshot) => {
-      if (docSnapshot.exists()) {
-        console.log(docSnapshot.data());
-      } else {
-        console.log('Document does not exist');
-      }
-    });
-  }
+  // listenToGameDocument(docId: string) {
+  //   this.unsubList = onSnapshot(doc(this.firestore, 'games', docId), (docSnapshot) => {
+  //     if (docSnapshot.exists()) {
+  //       console.log(docSnapshot.data());
+  //     } else {
+  //       console.log('Document does not exist');
+  //     }
+  //   });
+  // }
 
   listenToGameDocumentVersionTwo() {
     this.unsubList = onSnapshot(doc(this.firestore, 'games', this.docId), (docSnapshot) => {
       if (docSnapshot.exists()) {
         const data = docSnapshot.data();
-  
+
         // Update local game data with the data from Firestore
         this.game.players = data['players'] || [];
         this.game.stack = data['stack'] || [];
         this.game.playedCards = data['playedCards'] || [];
-        this.game.currentPlayer = data['currentPlayer'] || null;
-  
+        this.game.currentPlayer = data['currentPlayer'] || 0;
+
         console.log('Game data updated:', this.game);
       } else {
         console.log('Document does not exist');
@@ -119,13 +119,14 @@ export class GameComponent {
     if (!this.pickCardAnimation && this.currentCard !== undefined) {
       this.currentCard = this.game.stack.pop();
       this.pickCardAnimation = true;
-
       this.game.currentPlayer++;
       this.game.currentPlayer = this.game.currentPlayer % this.game.players.length;
+      this.updateDatabase(); //Muss abgespeichert werden damit die Animation abgespielt wird...
 
       setTimeout(() => {
         this.pickCardAnimation = false;
         this.game.playedCards.push(this.currentCard ?? 'defaultCard');
+        this.updateDatabase(); // Und hier auch nochmal
       }, 1000)
     }
   }
@@ -145,7 +146,7 @@ export class GameComponent {
 
   async updateDatabase() {
     let docRef = doc(this.firestore, 'games', this.docId); // Use the correct document reference
-  
+
     try {
       await updateDoc(docRef, {
         players: this.game.players,
