@@ -94,6 +94,7 @@ export class GameComponent {
         this.game.stack = data['stack'] || [];
         this.game.playedCards = data['playedCards'] || [];
         this.game.currentPlayer = data['currentPlayer'] || 0;
+        this.pickCardAnimation = data['pickCardAnimation'];
 
         console.log('Game data updated:', this.game);
       } else {
@@ -153,6 +154,7 @@ export class GameComponent {
         stack: this.game.stack,
         playedCards: this.game.playedCards,
         currentPlayer: this.game.currentPlayer,
+        pickCardAnimation: this.pickCardAnimation
       });
     } catch (error) {
       console.error('Error updating document: ', error);
